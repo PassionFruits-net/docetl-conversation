@@ -37,12 +37,12 @@ class ConversationOperation(BaseOperation):
         if not input_data:
             return input_data, 0
 
-        walker = DepthFirstGraphWithTreeBackupWalker(input_data)
-        output = []
         kw = dict(self.config)
         kw.pop("name")
         kw.pop("type")
         kw.pop("length")
+        walker = DepthFirstGraphWithTreeBackupWalker(input_data, **kw)
+        output = []
         for idx, utterance in enumerate(Conversation(input_data, walker, **kw)):
             if idx > self.config.get("length", np.inf):
                 break

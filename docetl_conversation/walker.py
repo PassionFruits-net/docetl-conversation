@@ -1,4 +1,4 @@
-def Tree(object):
+class Tree(object):
     def __init__(self, items, cluster_key="clusters", title_key="concept"):
         self.cluster_key = cluster_key
         self.title_key = title_key
