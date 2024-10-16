@@ -8,7 +8,7 @@ Example configuration
 ```yaml
 - name: conversation
   type: conversation
-  length: 5
+  length: 6
   names:
     - Alice
     - Bob
