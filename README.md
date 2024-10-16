@@ -15,7 +15,7 @@ Example configuration
   title_key: concept
   description_key: description
   link_key: related_to    # A list of titles related to this title
-  cluster_key: categories # You must have run a clustering operation first
+  cluster_key: clusters # You must have run a clustering operation first
 ```
 
 Example output:
