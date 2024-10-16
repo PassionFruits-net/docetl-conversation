@@ -15,7 +15,7 @@ setup(
     version = "0.0.1",
     author = "Egil Moeller",
     author_email = "redhog@redhog.org",
-    license = "GPL",
+    license = "MIT",
     url = "https://github.com/redhog/docetl-conversation",
     packages = find_packages(),
     entry_points = {
