@@ -44,7 +44,7 @@ class ConversationOperation(BaseOperation):
         walker = DepthFirstGraphWithTreeBackupWalker(input_data, **kw)
         output = []
         for idx, utterance in enumerate(Conversation(input_data, walker, **kw)):
-            if idx > self.config.get("length", np.inf):
+            if idx >= self.config.get("length", np.inf):
                 break
             output.append(utterance)
         
