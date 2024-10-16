@@ -1,15 +1,18 @@
 def Tree(object):
-    def __init__(self, items):
+    def __init__(self, items, cluster_key="clusters", title_key="concept"):
+        self.cluster_key = cluster_key
+        self.title_key = title_key
+        
         tree = {"children": {}}
         for i in items:
             t = tree["children"]
-            for j in reversed(i["categories"]):
-                c = j["concept"]
+            for j in reversed(i[self.cluster_key]):
+                c = j[self.title_key]
                 if c not in t:
                     t[c] = dict(j)
                     t[c]["children"] = {}
                 t = t[c]["children"]
-            c = i["concept"]
+            c = i[self.title_key]
             if c not in t:
                 t[c] = dict(i)
                 t[c]["children"] = {}
@@ -17,7 +20,7 @@ def Tree(object):
 
     def get_node_path(self, node, tree=None, prefix = ()):
         if tree is None: tree = self.tree
-        if tree["concept"] == node:
+        if tree[self.title_key] == node:
             return prefix + (tree,)
         if "children" not in tree:
             return None
@@ -46,12 +49,24 @@ class WalkItem(object):
     def __repr__(self): return self.text
                     
 class DepthFirstGraphWithTreeBackupWalker(object):
-    def __init__(self, items, pool = None):
-        self.items = {item["concept"]: item for item in items}
-        self.tree = Tree(items)
+    def __init__(self, items, pool = None,
+                 title_key = "concept",
+                 cluster_key = "clusters",
+                 link_key = "related_to",
+                 **kw
+                 ):
+        self.cluster_key = cluster_key
+        self.title_key = title_key
+        self.link_key = link_key
+        
+        self.items = {item[self.title_key]: item for item in items}
+        self.tree = Tree(
+            items,
+            title_key = title_key,
+            cluster_key = cluster_key)
         self.all = set(self.items.keys())
         self.visited = set()
-        self.pool = pool or [items[0]["concept"]]
+        self.pool = pool or [items[0][self.title_key]]
         self.reason = ("initial",)
 
     def __iter__(self): return self
@@ -66,14 +81,14 @@ class DepthFirstGraphWithTreeBackupWalker(object):
 
         # The intersection with all is because the LLM generates links to concepts never described elsewhere with
         #the exact same name; need to merge these somewhere
-        related = (set(self.items[res]["relatedt_to"]) - self.visited - set(self.pool)).intersection(self.all)
+        related = (set(self.items[res][self.link_key]) - self.visited - set(self.pool)).intersection(self.all)
         self.pool.extend(list(sorted(related)))
         self.reason = ("graph",)
         
         if not self.pool:
             path = reversed(self.tree.get_node_path(self.current))
             for item in path:
-                leaves = set([l["concept"] for l in self.get_leaves(item)])
+                leaves = set([l[self.title_key] for l in self.get_leaves(item)])
                 remaining = leaves - self.visited
                 if remaining:
                     self.pool = [next(iter(remaining))]

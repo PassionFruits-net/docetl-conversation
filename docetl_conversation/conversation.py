@@ -37,6 +37,9 @@ class Conversation(object):
     
     names = ["Anders", "Johan"]
     professor_name="Karl"
+
+    title_key = "concept"
+    description_key = "description"
     
     def __init__(self, items, concepts, **kw):
         self.items = items
@@ -49,7 +52,7 @@ class Conversation(object):
         self.system_prompt_template = Template(self.system_prompt)
         self.conversation_prompt_template = Template(self.conversation_prompt)
         
-        self.documents = [llama_index.core.Document(doc_id=i["concept"], text=i["description"]) for i in items]
+        self.documents = [llama_index.core.Document(doc_id=i[self.title_key], text=i[self.description_key]) for i in items]
         self.index = llama_index.core.VectorStoreIndex.from_documents(self.documents)
         self.chats = {name: self.index.as_chat_engine()
                       for name in self.names}
