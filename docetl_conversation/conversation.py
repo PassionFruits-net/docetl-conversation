@@ -74,7 +74,7 @@ class Conversation(object):
         return self.converse()
 
     def converse(self):
-        for i, n in enumerate(self.concepts):
+        for i, concept in enumerate(self.concepts):
             name = self.names[i % len(self.names)] # FIXME: Here we might want to add randomization etc...
             chat = self.chats[name]
             buff = self.buffers[name]
@@ -87,12 +87,12 @@ class Conversation(object):
                     name=name,
                     partner_names=partner_names,
                     professor_name=self.professor_name,
-                    concept=n
+                    concept=concept
                 ))
             del buff[:]
             print("Prompt for %s: %s\n\n" % (name, prompt))
             response = chat.chat(prompt)
-            utterance = {"speaker": name, "text": response.response}
+            utterance = {"speaker": name, "text": response.response, "concept": str(concept)}
             for partner_name in partner_names:
                 self.buffers[partner_name].append(utterance)
             yield utterance
