@@ -86,7 +86,7 @@ class DepthFirstGraphWithTreeBackupWalker(object):
         self.reason = ("graph",)
         
         if not self.pool:
-            path = reversed(self.tree.get_node_path(self.current))
+            path = reversed(self.tree.get_node_path(res))
             for item in path:
                 leaves = set([l[self.title_key] for l in self.get_leaves(item)])
                 remaining = leaves - self.visited
