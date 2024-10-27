@@ -5,7 +5,7 @@ import re
 
 class Conversation(object):
     system_prompt = """
-        You are {{name}}, a student and will be discussion various subjects with
+        You are {{name}}, a student and will be discussing various subjects with
         {% if partner_names|length == 1 %}
           me, {{partner_names|first}}, another student.
         {% else %}
@@ -15,7 +15,7 @@ class Conversation(object):
             {{partner_name}}
           {% endfor %} who are also students.
         {% endif %}
-        You should occasionally ask questions, and can if you see fit, be argumentative.
+        You should occasionally ask questions and can, if you see fit, be argumentative.
         Try to answer questions, and don't just answer a question with a question!
         Our professor, {{professor_name}}, will ocassionally hint at a new subject to transition to or themes to include in your reply.
         {% if partner_names|length == 1 %}
@@ -38,7 +38,7 @@ class Conversation(object):
     names = ["Anders", "Johan"]
     professor_name="Karl"
 
-    title_key = "concept"
+    title_key = None
     description_key = "description"
     
     def __init__(self, items, concepts, **kw):
@@ -51,9 +51,14 @@ class Conversation(object):
             
         self.system_prompt_template = Template(self.system_prompt)
         self.conversation_prompt_template = Template(self.conversation_prompt)
-        
-        self.documents = [llama_index.core.Document(doc_id=i[self.title_key], text=i[self.description_key]) for i in items]
-        self.index = llama_index.core.VectorStoreIndex.from_documents(self.documents)
+
+        self.documents = [llama_index.core.Document(
+            doc_id=(i[self.title_key]
+                    if self.title_key is not None
+                    else str(idx)),
+            text=i[self.description_key]) for idx, i in enumerate(items)]
+        self.index = llama_index.core.VectorStoreIndex.from_documents(
+            self.documents)
         self.chats = {name: self.index.as_chat_engine()
                       for name in self.names}
 
@@ -69,32 +74,44 @@ class Conversation(object):
                 ))
             print("System prompt for %s: %s\n\n" % (name, prompt))
             chat.chat(prompt)
-            
+
+    exchanges_per_concept = 1
+    def get_exchanges_per_concept(self, utterance_nr, concept):
+        return self.exchanges_per_concept
+
+    # FIXME: Here we might want to add randomization etc...
+    def get_speaker(self, utterance_nr, concept):
+        return self.names[utterance_nr % len(self.names)]
+        
     def __iter__(self):
         return self.converse()
 
-    def converse(self):
-        for i, concept in enumerate(self.concepts):
-            name = self.names[i % len(self.names)] # FIXME: Here we might want to add randomization etc...
-            chat = self.chats[name]
-            buff = self.buffers[name]
-            partner_names = set(self.names) - set([name])
-            
-            prompt = re.sub(
-                r"^ +", "",
-                self.conversation_prompt_template.render(
-                    utterances=buff,
-                    name=name,
-                    partner_names=partner_names,
-                    professor_name=self.professor_name,
-                    concept=concept
-                ))
-            del buff[:]
-            print("Prompt for %s: %s\n\n" % (name, prompt))
-            response = chat.chat(prompt)
-            utterance = {"speaker": name, "text": response.response, "concept": str(concept)}
-            for partner_name in partner_names:
-                self.buffers[partner_name].append(utterance)
-            yield utterance
+    def utter(self, name, utterance_nr, concept):
+        chat = self.chats[name]
+        buff = self.buffers[name]
+        partner_names = set(self.names) - set([name])
 
-            
+        prompt = re.sub(
+            r"^ +", "",
+            self.conversation_prompt_template.render(
+                utterances=buff,
+                name=name,
+                partner_names=partner_names,
+                professor_name=self.professor_name,
+                concept=concept
+            ))
+        del buff[:]
+        print("Prompt for %s: %s\n\n" % (name, prompt))
+        response = chat.chat(prompt)
+        utterance = {"speaker": name, "text": response.response, "concept": str(concept)}
+        for partner_name in partner_names:
+            self.buffers[partner_name].append(utterance)
+        return utterance
+        
+    def converse(self):
+        utterance_nr = 0
+        for concept in self.concepts:
+            for j in range(0, self.get_exchanges_per_concept(utterance_nr, concept)):
+                name = self.get_speaker(utterance_nr, concept)
+                yield self.utter(name, utterance_nr, concept)
+                utterance_nr += 1
