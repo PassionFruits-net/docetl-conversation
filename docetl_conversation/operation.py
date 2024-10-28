@@ -40,7 +40,6 @@ class ConversationOperation(BaseOperation):
         kw = dict(self.config)
         kw.pop("name")
         kw.pop("type")
-        kw.pop("length")
         documents_source = kw.pop("documents", None)
         if documents_source is None:
             documents = input_data
@@ -48,9 +47,14 @@ class ConversationOperation(BaseOperation):
             documents = self.runner.datasets[documents_source].load()
         walker = DepthFirstGraphWithTreeBackupWalker(input_data, **kw)
         output = []
-        for idx, utterance in enumerate(Conversation(documents, walker, **kw)):
-            if idx >= self.config.get("length", np.inf):
-                break
+
+        conv = Conversation(
+            self.console,
+            documents,
+            walker,
+            **kw)
+        
+        for utterance in conv:
             output.append(utterance)
         
         return output, 0
