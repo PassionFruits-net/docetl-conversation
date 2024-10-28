@@ -8,14 +8,18 @@ Example configuration
 ```yaml
 - name: conversation
   type: conversation
-  length: 6
   names:
     - Alice
     - Bob
   title_key: concept
   description_key: description
-  link_key: related_to    # A list of titles related to this title
-  cluster_key: clusters # You must have run a clustering operation first
+  link_key: related_to           # A list of titles related to this title
+  cluster_key: clusters          # You must have run a clustering operation first
+  utterances_left_total: 6       # Total number of utterances to produce
+  # utterances_left:             # Per-speaker limits
+  #   Alice: 3
+  #   Bob: 3
+  # utterances_left_threshold: 3 # When to start telling the speakers to round up the conversation
 ```
 
 Example output:
@@ -55,6 +59,7 @@ Default prompts and other parameters and how to override them:
 
 ```yaml
   professor_name: Karl
+  # The system prompt is given to each speaker before the conversation starts
   system_prompt: |
         You are {{name}}, a student and will be discussion various subjects with
         {% if partner_names|length == 1 %}
@@ -74,13 +79,29 @@ Default prompts and other parameters and how to override them:
         {% endif %}
         Your replies shouldn't be longer than a single paragraph. It can very well be a single sentence, especially if it's a question.
 
+  # The conversation prompt is used to generate a new utterance. Notice the loop over `utterances`:
+  # all utterances by other speakers since this speaker last spoke.
   conversation_prompt: |
+        {% for utterance in utterances %}
+          {{utterance.speaker}}: {{utterance.text}}
+        {% endfor %}
         {% if utterances|length == 0 %}
            {{professor_name}}: Please start the conversation by talking a bit about {{concept}}!
         {% else %}
-          {% for utterance in utterances %}
-            {{utterance.speaker}}: {{utterance.text}}
-          {% endfor %}
           {{professor_name}}: Please incorporate {{concept}} into your answer.
+          {% if utterances_left_total != None and utterances_left_total <= utterances_left_threshold %}
+            {% if utterances_left_total < 2 %}
+              Your reply is the last reply, and you should round up this conversation.
+            {% else %}
+              There are {{utterances_left_total}} turns left before we have to round up this conversation.
+            {% endif %}
+          {% endif %}
+          {% if utterances_left != None and utterances_left <= utterances_left_threshold %}
+            {% if utterances_left < 2 %}
+              This is your last reply. Try to make it easier for your conversation partner to round up the conversation.
+            {% else %}
+              You have {{utterances_left}} replies left before we have to round up this conversation.
+            {% endif %}
+          {% endif %}
         {% endif %}
-```
+ ```
