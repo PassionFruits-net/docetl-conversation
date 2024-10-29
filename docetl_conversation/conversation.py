@@ -4,7 +4,10 @@ from jinja2 import Environment, Template
 import re
 import numpy as np
 from rich.console import Console
+import llama_index.llms.openai
+import tiktoken
 
+        
 class Conversation(object):
     system_prompt = """
         You are {{name}}, a student and will be discussing various subjects with
@@ -81,25 +84,33 @@ class Conversation(object):
             text=i[self.description_key]) for idx, i in enumerate(items)]
         self.index = llama_index.core.VectorStoreIndex.from_documents(
             self.documents)
-        self.chats = {name: self.index.as_chat_engine()
-                      for name in self.names}
+
+        self.chats = {name: self.get_query_engine(name) for name in self.names}
 
         self.buffers = {name: [] for name in self.names}
 
         # Make this an instance property so it can be safely modified...
         self.utterances_left = dict(self.utterances_left)
-        
-        for name, chat in self.chats.items():
-            prompt = re.sub(
+
+    def get_query_engine(self, name):
+        model = "gpt-4-0125-preview"
+        summarizer_llm =  llama_index.llms.openai.OpenAI(model_name=model, max_tokens=256)
+        tokenizer_fn = tiktoken.encoding_for_model(model).encode
+        return self.index.as_chat_engine(
+            memory = llama_index.core.memory.ChatSummaryMemoryBuffer(
+                llm=summarizer_llm,
+                token_limit=4000,
+                tokenizer_fn=tokenizer_fn,
+            ),
+            system_prompt = re.sub(
                 r"^ +", "",
                 self.system_prompt_template.render(
                     name=name,
                     partner_names=set(self.names) - set([name]),
                     professor_name=self.professor_name
                 ))
-            print("System prompt for %s: %s\n\n" % (name, prompt))
-            chat.chat(prompt)
-
+        )
+        
     exchanges_per_concept = 1
     def get_exchanges_per_concept(self, concept):
         return self.exchanges_per_concept
