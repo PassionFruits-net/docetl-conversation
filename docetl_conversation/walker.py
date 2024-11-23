@@ -83,7 +83,7 @@ class DepthFirstGraphWithTreeBackupWalker(object):
         if res in self.items:
             self.path = self.tree.get_node_path(res)
             related = set(self.items[res][self.link_key]) - self.visited - set(self.pool)
-            # related = related.intersection(self.all)
+            related = related.intersection(self.all)
             self.pool.extend(list(sorted(related)))
             self.reason = ("graph",)
         
