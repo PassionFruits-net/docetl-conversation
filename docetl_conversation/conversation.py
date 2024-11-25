@@ -34,9 +34,13 @@ class Conversation(object):
           {{utterance.speaker}}: {{utterance.text}}
         {% endfor %}
         {% if utterances|length == 0 %}
-           {{professor_name}}: Please start the conversation by talking a bit about {{concept}}!
+          {% if concept != None %}
+            {{professor_name}}: Please start the conversation by talking a bit about {{concept}}!
+          {% endif %}
         {% else %}
-          {{professor_name}}: Please incorporate {{concept}} into your answer.
+          {% if concept != None %}
+            {{professor_name}}: Please incorporate {{concept}} into your answer.
+          {% endif %}
           {% if utterances_left_total != None and utterances_left_total <= utterances_left_threshold %}
             {% if utterances_left_total < 2 %}
               Your reply is the last reply, and you should round up this conversation.
@@ -122,7 +126,7 @@ class Conversation(object):
     def __iter__(self):
         return self.converse()
 
-    def utter(self, name, concept):
+    def utter(self, name, concept = None):
         chat = self.chats[name]
         buff = self.buffers[name]
         partner_names = set(self.names) - set([name])
@@ -169,5 +173,5 @@ class Conversation(object):
                     self.console.print("utterances_left == 0 for %s" % name)
                     continue
                 
-                yield self.utter(name, concept)
+                yield self.utter(name, concept if j == 0 else None)
                 self.utterance_nr += 1
